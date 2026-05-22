@@ -119,3 +119,56 @@
     @apply bg-background text-foreground font-sans;
   }
 }
+
+/* ── BlockNote overrides ──────────────────────────────────────────── */
+.bn-root[data-color-scheme="dark"] {
+  --bn-colors-editor-background: transparent;
+  --bn-colors-editor-text: #e2e8f0;
+  --bn-colors-menu-background: #0a0d12;
+  --bn-colors-menu-text: #e2e8f0;
+  --bn-colors-tooltip-background: #0a0d12;
+  --bn-colors-tooltip-text: #e2e8f0;
+  --bn-colors-hovered-text: #e2e8f0;
+  --bn-colors-hovered-background: rgba(255, 255, 255, 0.05);
+  --bn-colors-selected-text: #e2e8f0;
+  --bn-colors-selected-background: rgba(13, 148, 136, 0.12);
+  --bn-colors-disabled-text: #64748b;
+  --bn-colors-border: #1e2a3a;
+  --bn-colors-side-menu: #64748b;
+  --bn-colors-shadow: rgba(0, 0, 0, 0.4);
+  --bn-font-family: var(--font-lora), Georgia, serif;
+  --bn-border-radius: 6px;
+}
+
+/* Force editor to be transparent + no card shape regardless of cascade order */
+.bn-editor {
+  background-color: transparent !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  caret-color: #0d9488;
+  min-height: 100%;
+}
+
+/* Comfortable reading padding applied via domAttributes class */
+.scriva-bn-inner {
+  padding: 36px 48px !important;
+}
+
+.scriva-bn-view {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  height: 100%;
+  background: transparent !important;
+}
+
+.scriva-bn-view .bn-root,
+.scriva-bn-view .bn-container {
+  background: transparent !important;
+  flex: 1;
+}
+
+.scriva-editor-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 116, 139, 0.3) transparent;
+}

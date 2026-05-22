@@ -6,6 +6,7 @@ import Sidebar from "./Sidebar";
 import ChatPanel from "./ChatPanel";
 import NotepadPanel from "./NotepadPanel";
 import ResizeHandle from "./ResizeHandle";
+import { useWorkspaceStore } from "@/store/workspace";
 
 const SIDEBAR_WIDTH = 260;
 const MIN_CHAT_WIDTH = 300;
@@ -13,6 +14,7 @@ const MIN_NOTEPAD_WIDTH = 320;
 const DEFAULT_CHAT_RATIO = 0.45;
 
 export default function WorkspaceLayout() {
+  const { activeSessionId } = useWorkspaceStore();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const contentRef = useRef<HTMLDivElement>(null);
   const chatPanelRef = useRef<HTMLDivElement>(null);
@@ -121,7 +123,7 @@ export default function WorkspaceLayout() {
           className="flex-shrink-0 overflow-hidden"
           style={{ width: "45%" }}
         >
-          <ChatPanel />
+          <ChatPanel key={activeSessionId ?? "empty"} />
         </div>
 
         {/* Resize Handle */}
