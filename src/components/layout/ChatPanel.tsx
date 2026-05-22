@@ -1,27 +1,38 @@
 "use client";
 
-import { Send, ChevronDown, Paperclip } from "lucide-react";
+import { Send, ChevronDown, Paperclip, MessageSquare } from "lucide-react";
+import { useWorkspaceStore } from "@/store/workspace";
 
-const MOCK_MESSAGES = [
-  {
-    id: "1",
-    role: "user",
-    content: "Can you help me structure a competitive analysis for a new productivity tool?",
-  },
-  {
-    id: "2",
-    role: "assistant",
-    content:
-      "Absolutely. A strong competitive analysis for a productivity tool should cover four dimensions: feature parity, positioning, pricing, and target audience. Here's how I'd structure it:\n\n1. **Direct Competitors** — tools solving the exact same problem\n2. **Indirect Competitors** — tools users might use instead\n3. **Feature Matrix** — side-by-side comparison of key capabilities\n4. **Positioning Map** — where each product sits on key axes\n5. **Your Differentiation** — where you win and why\n\nWant me to start filling this in for your specific tool?",
-  },
-  {
-    id: "3",
-    role: "user",
-    content: "Yes, let's focus on the thinking-to-document workflow space.",
-  },
-];
+const MOCK_MESSAGES: Record<
+  string,
+  { id: string; role: string; content: string }[]
+> = {
+  "session-1": [
+    {
+      id: "1",
+      role: "user",
+      content:
+        "Can you help me structure a competitive analysis for a new productivity tool?",
+    },
+    {
+      id: "2",
+      role: "assistant",
+      content:
+        "Absolutely. A strong competitive analysis for a productivity tool should cover four dimensions: feature parity, positioning, pricing, and target audience. Here's how I'd structure it:\n\n1. **Direct Competitors** — tools solving the exact same problem\n2. **Indirect Competitors** — tools users might use instead\n3. **Feature Matrix** — side-by-side comparison of key capabilities\n4. **Positioning Map** — where each product sits on key axes\n5. **Your Differentiation** — where you win and why\n\nWant me to start filling this in for your specific tool?",
+    },
+    {
+      id: "3",
+      role: "user",
+      content: "Yes, let's focus on the thinking-to-document workflow space.",
+    },
+  ],
+};
 
 export default function ChatPanel() {
+  const { activeSessionId, sessions } = useWorkspaceStore();
+  const activeSession = sessions.find((s) => s.id === activeSessionId);
+  const messages =
+    (activeSessionId ? MOCK_MESSAGES[activeSessionId] : null) ?? [];
   return (
     <div
       className="flex flex-col h-full border-r"
@@ -35,12 +46,18 @@ export default function ChatPanel() {
         className="flex items-center justify-between px-4 h-14 flex-shrink-0 border-b"
         style={{ borderColor: "var(--border)" }}
       >
-        <span className="text-sm font-medium" style={{ color: "var(--foreground)" }}>
-          Chat
+        <span
+          className="text-sm font-medium truncate max-w-[180px]"
+          style={{ color: "var(--foreground)" }}
+        >
+          {activeSession?.title ?? "Chat"}
         </span>
         <button
           className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium border transition-colors duration-150 hover:bg-white/5"
-          style={{ borderColor: "var(--border)", color: "var(--muted-foreground)" }}
+          style={{
+            borderColor: "var(--border)",
+            color: "var(--muted-foreground)",
+          }}
         >
           Claude 3.5 Sonnet
           <ChevronDown className="w-3 h-3" />
@@ -49,7 +66,34 @@ export default function ChatPanel() {
 
       {/* Message list */}
       <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
-        {MOCK_MESSAGES.map((message) => (
+        {messages.length === 0 && (
+          <div className="flex flex-col items-center justify-center h-full gap-3 pb-16">
+            <div
+              className="w-10 h-10 rounded-xl flex items-center justify-center"
+              style={{ backgroundColor: "rgba(13, 148, 136, 0.1)" }}
+            >
+              <MessageSquare
+                className="w-5 h-5"
+                style={{ color: "var(--color-scriva-accent)" }}
+              />
+            </div>
+            <div className="text-center">
+              <p
+                className="text-sm font-medium mb-1"
+                style={{ color: "var(--foreground)" }}
+              >
+                Start a conversation
+              </p>
+              <p
+                className="text-xs"
+                style={{ color: "var(--muted-foreground)" }}
+              >
+                Ask anything — ideas, analysis, explanations
+              </p>
+            </div>
+          </div>
+        )}
+        {messages.map((message) => (
           <div
             key={message.id}
             className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
