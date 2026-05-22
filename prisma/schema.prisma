@@ -1,0 +1,68 @@
+// Scriva Prisma Schema
+// Syncs local Zustand state to Supabase PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// User synced from Clerk
+model User {
+  id        String   @id // Clerk user ID
+  email     String   @unique
+  name      String?
+  imageUrl  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sessions Session[]
+
+  @@map("users")
+}
+
+// Thinking session (maps to Zustand Session)
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String   @default("New Chat")
+  hasNotes  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  document Document?
+  messages ChatMessage[]
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+// Notepad document content (JSON blocks from BlockNote)
+model Document {
+  id        String   @id @default(cuid())
+  sessionId String   @unique
+  blocks    Json     @default("[]") // BlockNote document JSON
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("documents")
+}
+
+// Chat messages
+model ChatMessage {
+  id        String   @id @default(cuid())
+  sessionId String
+  role      String   // "user" | "assistant" | "system"
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@map("chat_messages")
+}

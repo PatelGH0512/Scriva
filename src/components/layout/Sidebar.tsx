@@ -9,14 +9,18 @@ import {
   ChevronLeft,
   Trash2,
   Pencil,
+  Cloud,
+  CloudOff,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { UserButton, useAuth } from "@clerk/nextjs";
 import {
   useWorkspaceStore,
   getSessionGroup,
   type Session,
 } from "@/store/workspace";
 import DeleteSessionDialog from "./DeleteSessionDialog";
+import { useCloudSync } from "@/hooks/useCloudSync";
 
 interface SidebarProps {
   onCollapse: () => void;
@@ -140,6 +144,7 @@ function SessionItem({
 }
 
 export default function Sidebar({ onCollapse }: SidebarProps) {
+  const { isSignedIn } = useAuth();
   const {
     sessions,
     activeSessionId,
@@ -148,6 +153,13 @@ export default function Sidebar({ onCollapse }: SidebarProps) {
     renameSession,
     setActiveSession,
   } = useWorkspaceStore();
+
+  const {
+    isCloudEnabled,
+    createCloudSession,
+    deleteCloudSession,
+    renameCloudSession,
+  } = useCloudSync();
 
   const [deleteTarget, setDeleteTarget] = useState<Session | null>(null);
 
@@ -223,7 +235,17 @@ export default function Sidebar({ onCollapse }: SidebarProps) {
         {/* New Chat Button */}
         <div className="px-3 py-3 flex-shrink-0">
           <button
-            onClick={() => createSession()}
+            onClick={async () => {
+              if (isCloudEnabled) {
+                const cloudId = await createCloudSession();
+                if (cloudId) {
+                  // Refresh from cloud
+                  window.location.reload();
+                }
+              } else {
+                createSession();
+              }
+            }}
             className="w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium border transition-colors duration-150 hover:bg-white/5"
             style={{ borderColor: "var(--border)", color: "var(--foreground)" }}
           >
@@ -263,18 +285,66 @@ export default function Sidebar({ onCollapse }: SidebarProps) {
           })}
         </div>
 
-        {/* Settings */}
+        {/* User & Settings */}
         <div
           className="flex-shrink-0 border-t px-3 py-3"
           style={{ borderColor: "var(--border)" }}
         >
-          <button
-            className="w-full flex items-center gap-2 px-2 py-2 rounded-md text-sm transition-colors duration-150 hover:bg-white/5"
-            style={{ color: "var(--muted-foreground)" }}
-          >
-            <Settings className="w-4 h-4" />
-            Settings
-          </button>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              {isSignedIn ? (
+                <UserButton
+                  appearance={{
+                    elements: {
+                      avatarBox: "w-7 h-7",
+                    },
+                  }}
+                />
+              ) : (
+                <div
+                  className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium"
+                  style={{
+                    backgroundColor: "var(--secondary)",
+                    color: "var(--muted-foreground)",
+                  }}
+                >
+                  ?
+                </div>
+              )}
+              <div className="flex items-center gap-1.5">
+                {isCloudEnabled ? (
+                  <Cloud
+                    className="w-3.5 h-3.5"
+                    style={{ color: "var(--color-scriva-accent)" }}
+                  />
+                ) : (
+                  <CloudOff
+                    className="w-3.5 h-3.5"
+                    style={{ color: "var(--muted-foreground)" }}
+                  />
+                )}
+                <span
+                  className="text-xs"
+                  style={{
+                    color: isCloudEnabled
+                      ? "var(--color-scriva-accent)"
+                      : "var(--muted-foreground)",
+                  }}
+                >
+                  {isCloudEnabled ? "Synced" : "Local"}
+                </span>
+              </div>
+            </div>
+            <button
+              className="p-1.5 rounded-md transition-colors duration-150 hover:bg-white/5"
+              title="Settings"
+            >
+              <Settings
+                className="w-4 h-4"
+                style={{ color: "var(--muted-foreground)" }}
+              />
+            </button>
+          </div>
         </div>
       </div>
 
