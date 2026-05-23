@@ -1,5 +1,7 @@
 import { create } from "zustand";
 
+export type SyncStatus = "idle" | "syncing" | "synced" | "error";
+
 export interface Session {
   id: string;
   title: string;
@@ -29,6 +31,12 @@ export interface PendingChatPrompt {
 }
 
 interface WorkspaceStore {
+  // Auth & sync state
+  isCloudMode: boolean;
+  isInitialized: boolean;
+  syncStatus: SyncStatus;
+  
+  // Data
   sessions: Session[];
   activeSessionId: string | null;
   documents: Record<string, unknown[]>;
@@ -36,6 +44,11 @@ interface WorkspaceStore {
   pendingAppend: PendingAppend | null;
   pendingChatPrompt: PendingChatPrompt | null;
 
+  // Actions
+  setCloudMode: (enabled: boolean) => void;
+  setInitialized: (initialized: boolean) => void;
+  setSyncStatus: (status: SyncStatus) => void;
+  setSessions: (sessions: Session[]) => void;
   createSession: () => string;
   deleteSession: (id: string) => void;
   renameSession: (id: string, title: string) => void;
@@ -47,71 +60,21 @@ interface WorkspaceStore {
   clearPendingAppend: () => void;
   setPendingChatPrompt: (sessionId: string, selectedText: string, action?: PendingChatPrompt["action"]) => void;
   clearPendingChatPrompt: () => void;
+  reset: () => void;
 }
 
-const INITIAL_DOCUMENTS: Record<string, unknown[]> = {
-  "session-1": [
-    {
-      type: "heading",
-      props: { level: 1 },
-      content: "Competitive Analysis — Thinking Tools",
-    },
-    {
-      type: "annotated",
-      props: {
-        contextLabel: "from chat — May 22",
-        appendedAt: new Date().toISOString(),
-      },
-      content: "A strong competitive analysis covers four dimensions: feature parity, positioning, pricing, and target audience.",
-    },
-    {
-      type: "heading",
-      props: { level: 2 },
-      content: "Key Dimensions",
-    },
-    {
-      type: "annotated",
-      props: {
-        contextLabel: "from chat — May 22",
-        appendedAt: new Date().toISOString(),
-      },
-      content: "Direct competitors solve the exact same problem. Indirect competitors are tools users might choose instead. Map each on a positioning axis to find where you win.",
-    },
-  ],
+// Initial state - empty until loaded from cloud or local fallback
+const INITIAL_STATE = {
+  isCloudMode: false,
+  isInitialized: false,
+  syncStatus: "idle" as SyncStatus,
+  sessions: [] as Session[],
+  activeSessionId: null as string | null,
+  documents: {} as Record<string, unknown[]>,
+  chatMessages: {} as Record<string, StoredMessage[]>,
+  pendingAppend: null as PendingAppend | null,
+  pendingChatPrompt: null as PendingChatPrompt | null,
 };
-
-const INITIAL_SESSIONS: Session[] = [
-  {
-    id: "session-1",
-    title: "Product roadmap brainstorm",
-    hasNotes: true,
-    createdAt: new Date(),
-  },
-  {
-    id: "session-2",
-    title: "Competitive analysis",
-    hasNotes: false,
-    createdAt: new Date(),
-  },
-  {
-    id: "session-3",
-    title: "System design deep dive",
-    hasNotes: true,
-    createdAt: new Date(Date.now() - 86400000),
-  },
-  {
-    id: "session-4",
-    title: "User research synthesis",
-    hasNotes: true,
-    createdAt: new Date(Date.now() - 86400000),
-  },
-  {
-    id: "session-5",
-    title: "Feature prioritization",
-    hasNotes: false,
-    createdAt: new Date(Date.now() - 86400000),
-  },
-];
 
 function generateId(): string {
   return `session-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -137,12 +100,26 @@ export function getSessionGroup(createdAt: Date): string {
 }
 
 export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
-  sessions: INITIAL_SESSIONS,
-  activeSessionId: "session-1",
-  documents: INITIAL_DOCUMENTS,
-  chatMessages: {},
-  pendingAppend: null,
-  pendingChatPrompt: null,
+  ...INITIAL_STATE,
+
+  setCloudMode: (enabled: boolean) => {
+    set({ isCloudMode: enabled });
+  },
+
+  setInitialized: (initialized: boolean) => {
+    set({ isInitialized: initialized });
+  },
+
+  setSyncStatus: (status: SyncStatus) => {
+    set({ syncStatus: status });
+  },
+
+  setSessions: (sessions: Session[]) => {
+    set({ 
+      sessions,
+      activeSessionId: sessions[0]?.id ?? null,
+    });
+  },
 
   createSession: () => {
     const id = generateId();
@@ -230,5 +207,9 @@ export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
 
   clearPendingChatPrompt: () => {
     set({ pendingChatPrompt: null });
+  },
+
+  reset: () => {
+    set(INITIAL_STATE);
   },
 }));

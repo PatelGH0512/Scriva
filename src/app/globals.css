@@ -37,9 +37,18 @@
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) * 1.4);
-  /* Scriva brand tokens */
+  /* Scriva brand tokens - shared */
   --color-scriva-accent: #0d9488;
   --color-scriva-accent-hover: #0f766e;
+  /* Light mode Scriva tokens */
+  --color-scriva-bg: #f7f5f2;
+  --color-scriva-sidebar: #f0efec;
+  --color-scriva-notepad: #ffffff;
+  --color-scriva-border: rgba(0, 0, 0, 0.08);
+}
+
+/* Dark mode Scriva brand overrides */
+.dark {
   --color-scriva-bg: #0e1117;
   --color-scriva-sidebar: #0a0d12;
   --color-scriva-notepad: #131820;
@@ -121,6 +130,25 @@
 }
 
 /* ── BlockNote overrides ──────────────────────────────────────────── */
+.bn-root {
+  --bn-colors-editor-background: transparent;
+  --bn-colors-editor-text: #1a1a1a;
+  --bn-colors-menu-background: #ffffff;
+  --bn-colors-menu-text: #1a1a1a;
+  --bn-colors-tooltip-background: #ffffff;
+  --bn-colors-tooltip-text: #1a1a1a;
+  --bn-colors-hovered-text: #1a1a1a;
+  --bn-colors-hovered-background: rgba(0, 0, 0, 0.05);
+  --bn-colors-selected-text: #1a1a1a;
+  --bn-colors-selected-background: rgba(13, 148, 136, 0.12);
+  --bn-colors-disabled-text: #6b7280;
+  --bn-colors-border: #e5e7eb;
+  --bn-colors-side-menu: #6b7280;
+  --bn-colors-shadow: rgba(0, 0, 0, 0.1);
+  --bn-font-family: var(--font-lora), Georgia, serif;
+  --bn-border-radius: 6px;
+}
+
 .bn-root[data-color-scheme="dark"] {
   --bn-colors-editor-background: transparent;
   --bn-colors-editor-text: #e2e8f0;

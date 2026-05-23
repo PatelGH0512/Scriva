@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import { BlockNoteViewRaw, useCreateBlockNote } from "@blocknote/react";
 import { scrivaSchema } from "@/lib/blocknote-schema";
 import { useWorkspaceStore } from "@/store/workspace";
+import { useThemeStore } from "@/store/theme";
 import { smartParseForAppend } from "@/lib/markdown-to-blocks";
 import type { BlockNoteEditor, PartialBlock } from "@blocknote/core";
 import type { ScrivaSchema } from "@/lib/blocknote-schema";
@@ -31,12 +32,19 @@ export default function NotepadEditor({
     clearPendingAppend,
     setHasNotes,
   } = useWorkspaceStore();
+  const { theme } = useThemeStore();
 
   const savedBlocks = documents[sessionId];
 
+  // Provide default content if no saved blocks exist
+  const initialContent =
+    savedBlocks && savedBlocks.length > 0
+      ? (savedBlocks as PartialBlock[])
+      : undefined; // Let BlockNote create default empty paragraph
+
   const editor = useCreateBlockNote({
     schema: scrivaSchema,
-    initialContent: savedBlocks as PartialBlock[] | undefined,
+    initialContent,
     defaultStyles: false,
     domAttributes: {
       editor: { class: "scriva-bn-inner" },
@@ -68,7 +76,7 @@ export default function NotepadEditor({
   return (
     <BlockNoteViewRaw
       editor={editor}
-      theme="dark"
+      theme={theme}
       onChange={() => {
         saveDocument(sessionId, editor.document as unknown[]);
       }}

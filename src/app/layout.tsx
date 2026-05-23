@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Inter, Lora } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
-import { dark } from "@clerk/themes";
 import "./globals.css";
+import ThemeProvider from "@/components/providers/ThemeProvider";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -28,20 +28,19 @@ export default function RootLayout({
   return (
     <ClerkProvider
       appearance={{
-        baseTheme: dark,
         variables: {
           colorPrimary: "#0D9488",
-          colorBackground: "#0E1117",
-          colorInputBackground: "#131820",
-          colorText: "#E2E8F0",
         },
       }}
     >
       <html
         lang="en"
-        className={`${inter.variable} ${lora.variable} dark h-full antialiased`}
+        className={`${inter.variable} ${lora.variable} h-full antialiased`}
+        suppressHydrationWarning
       >
-        <body className="h-full overflow-hidden">{children}</body>
+        <body className="h-full overflow-hidden">
+          <ThemeProvider>{children}</ThemeProvider>
+        </body>
       </html>
     </ClerkProvider>
   );

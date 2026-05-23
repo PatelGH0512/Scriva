@@ -11,6 +11,8 @@ import {
   Pencil,
   Cloud,
   CloudOff,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UserButton, useAuth } from "@clerk/nextjs";
@@ -18,9 +20,11 @@ import {
   useWorkspaceStore,
   getSessionGroup,
   type Session,
+  type SyncStatus,
 } from "@/store/workspace";
 import DeleteSessionDialog from "./DeleteSessionDialog";
 import { useCloudSync } from "@/hooks/useCloudSync";
+import { useThemeStore } from "@/store/theme";
 
 interface SidebarProps {
   onCollapse: () => void;
@@ -143,11 +147,101 @@ function SessionItem({
   );
 }
 
+function ThemeToggle() {
+  const { theme, toggleTheme } = useThemeStore();
+
+  return (
+    <button
+      onClick={toggleTheme}
+      className="p-1.5 rounded-md transition-colors duration-150 hover:bg-black/5 dark:hover:bg-white/5"
+      title={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
+    >
+      {theme === "light" ? (
+        <Moon
+          className="w-4 h-4"
+          style={{ color: "var(--muted-foreground)" }}
+        />
+      ) : (
+        <Sun className="w-4 h-4" style={{ color: "var(--muted-foreground)" }} />
+      )}
+    </button>
+  );
+}
+
+function SyncStatusIndicator({
+  isCloudEnabled,
+  syncStatus,
+  isLoading,
+}: {
+  isCloudEnabled: boolean;
+  syncStatus: SyncStatus;
+  isLoading: boolean;
+}) {
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-1.5">
+        <div
+          className="w-3.5 h-3.5 border-2 border-t-transparent rounded-full animate-spin"
+          style={{
+            borderColor: "var(--color-scriva-accent)",
+            borderTopColor: "transparent",
+          }}
+        />
+        <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>
+          Loading...
+        </span>
+      </div>
+    );
+  }
+
+  if (!isCloudEnabled) {
+    return (
+      <div className="flex items-center gap-1.5">
+        <CloudOff
+          className="w-3.5 h-3.5"
+          style={{ color: "var(--muted-foreground)" }}
+        />
+        <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>
+          Local
+        </span>
+      </div>
+    );
+  }
+
+  const statusConfig = {
+    idle: { color: "var(--muted-foreground)", text: "Ready" },
+    syncing: { color: "var(--color-scriva-accent)", text: "Syncing..." },
+    synced: { color: "var(--color-scriva-accent)", text: "Synced" },
+    error: { color: "#ef4444", text: "Sync error" },
+  };
+
+  const config = statusConfig[syncStatus];
+
+  return (
+    <div className="flex items-center gap-1.5">
+      {syncStatus === "syncing" ? (
+        <div
+          className="w-3.5 h-3.5 border-2 border-t-transparent rounded-full animate-spin"
+          style={{ borderColor: config.color, borderTopColor: "transparent" }}
+        />
+      ) : (
+        <Cloud className="w-3.5 h-3.5" style={{ color: config.color }} />
+      )}
+      <span className="text-xs" style={{ color: config.color }}>
+        {config.text}
+      </span>
+    </div>
+  );
+}
+
 export default function Sidebar({ onCollapse }: SidebarProps) {
   const { isSignedIn } = useAuth();
   const {
     sessions,
     activeSessionId,
+    isCloudMode,
+    isInitialized,
+    syncStatus,
     createSession,
     deleteSession,
     renameSession,
@@ -156,6 +250,7 @@ export default function Sidebar({ onCollapse }: SidebarProps) {
 
   const {
     isCloudEnabled,
+    isLoading,
     createCloudSession,
     deleteCloudSession,
     renameCloudSession,
@@ -181,10 +276,30 @@ export default function Sidebar({ onCollapse }: SidebarProps) {
     ),
   ];
 
-  const handleDeleteConfirm = () => {
+  const handleCreateSession = async () => {
+    if (isCloudEnabled) {
+      await createCloudSession();
+    } else {
+      createSession();
+    }
+  };
+
+  const handleDeleteConfirm = async () => {
     if (deleteTarget) {
-      deleteSession(deleteTarget.id);
+      if (isCloudEnabled) {
+        await deleteCloudSession(deleteTarget.id);
+      } else {
+        deleteSession(deleteTarget.id);
+      }
       setDeleteTarget(null);
+    }
+  };
+
+  const handleRename = async (id: string, title: string) => {
+    if (isCloudEnabled) {
+      await renameCloudSession(id, title);
+    } else {
+      renameSession(id, title);
     }
   };
 
@@ -235,18 +350,8 @@ export default function Sidebar({ onCollapse }: SidebarProps) {
         {/* New Chat Button */}
         <div className="px-3 py-3 flex-shrink-0">
           <button
-            onClick={async () => {
-              if (isCloudEnabled) {
-                const cloudId = await createCloudSession();
-                if (cloudId) {
-                  // Refresh from cloud
-                  window.location.reload();
-                }
-              } else {
-                createSession();
-              }
-            }}
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium border transition-colors duration-150 hover:bg-white/5"
+            onClick={handleCreateSession}
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium border transition-colors duration-150 hover:bg-black/5 dark:hover:bg-white/5"
             style={{ borderColor: "var(--border)", color: "var(--foreground)" }}
           >
             <Plus
@@ -276,7 +381,7 @@ export default function Sidebar({ onCollapse }: SidebarProps) {
                     session={session}
                     isActive={session.id === activeSessionId}
                     onSelect={() => setActiveSession(session.id)}
-                    onRename={(title) => renameSession(session.id, title)}
+                    onRename={(title) => handleRename(session.id, title)}
                     onDeleteRequest={() => setDeleteTarget(session)}
                   />
                 ))}
@@ -311,39 +416,24 @@ export default function Sidebar({ onCollapse }: SidebarProps) {
                   ?
                 </div>
               )}
-              <div className="flex items-center gap-1.5">
-                {isCloudEnabled ? (
-                  <Cloud
-                    className="w-3.5 h-3.5"
-                    style={{ color: "var(--color-scriva-accent)" }}
-                  />
-                ) : (
-                  <CloudOff
-                    className="w-3.5 h-3.5"
-                    style={{ color: "var(--muted-foreground)" }}
-                  />
-                )}
-                <span
-                  className="text-xs"
-                  style={{
-                    color: isCloudEnabled
-                      ? "var(--color-scriva-accent)"
-                      : "var(--muted-foreground)",
-                  }}
-                >
-                  {isCloudEnabled ? "Synced" : "Local"}
-                </span>
-              </div>
-            </div>
-            <button
-              className="p-1.5 rounded-md transition-colors duration-150 hover:bg-white/5"
-              title="Settings"
-            >
-              <Settings
-                className="w-4 h-4"
-                style={{ color: "var(--muted-foreground)" }}
+              <SyncStatusIndicator
+                isCloudEnabled={isCloudEnabled}
+                syncStatus={syncStatus}
+                isLoading={isLoading ?? false}
               />
-            </button>
+            </div>
+            <div className="flex items-center gap-1">
+              <ThemeToggle />
+              <button
+                className="p-1.5 rounded-md transition-colors duration-150 hover:bg-black/5 dark:hover:bg-white/5"
+                title="Settings"
+              >
+                <Settings
+                  className="w-4 h-4"
+                  style={{ color: "var(--muted-foreground)" }}
+                />
+              </button>
+            </div>
           </div>
         </div>
       </div>

@@ -55,11 +55,14 @@ export default function ChatPanel() {
     error,
   } = useChat({
     api: "/api/chat",
+    id: sessionId, // Use session ID to maintain separate chat states
     initialMessages: storedMessages,
     body: { model },
-    onFinish: () => {
+    onFinish: (message) => {
+      // Save all messages including the new one
       if (activeSessionId) {
-        saveChatMessages(activeSessionId, messages as StoredMessage[]);
+        const allMessages = [...messages, message];
+        saveChatMessages(activeSessionId, allMessages as StoredMessage[]);
       }
     },
   });
