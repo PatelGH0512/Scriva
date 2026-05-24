@@ -5,7 +5,6 @@ import { Download, Bold, Italic, Underline } from "lucide-react";
 import { useWorkspaceStore } from "@/store/workspace";
 import dynamic from "next/dynamic";
 import type { BlockNoteEditor } from "@blocknote/core";
-import SelectionToolbar from "@/components/notepad/SelectionToolbar";
 
 const NotepadEditor = dynamic(
   () => import("@/components/notepad/NotepadEditor"),
@@ -136,7 +135,6 @@ export default function NotepadPanel() {
           sessionId={activeSessionId}
           onEditorReady={handleEditorReady}
         />
-        <SelectionToolbar editorRef={editorContainerRef.current} />
       </div>
     </div>
   );

@@ -2,6 +2,8 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+@source "../../node_modules/@blocknote/shadcn/src";
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -199,4 +201,41 @@
 .scriva-editor-scroll {
   scrollbar-width: thin;
   scrollbar-color: rgba(100, 116, 139, 0.3) transparent;
+}
+
+/* ── BlockNote shadcn popup overrides ──────────────────────────────── */
+/* Radix portals land on <body> (under <html class="dark">), so CSS vars
+   cascade correctly. We force background + z-index because Tailwind v4
+   skips node_modules and never generates bg-popover / z-50 for these. */
+[data-slot="dropdown-menu-content"],
+[data-slot="dropdown-menu-sub-content"] {
+  background-color: var(--popover);
+  color: var(--popover-foreground);
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  z-index: 9999 !important;
+}
+
+[data-slot="dropdown-menu-item"] {
+  color: var(--popover-foreground);
+  cursor: pointer;
+}
+
+[data-slot="dropdown-menu-item"]:hover,
+[data-slot="dropdown-menu-item"][data-highlighted] {
+  background-color: var(--accent);
+  color: var(--accent-foreground);
+}
+
+[data-slot="dropdown-menu-label"] {
+  color: var(--muted-foreground);
+}
+
+[data-slot="dropdown-menu-separator"] {
+  background-color: var(--border);
+}
+
+/* Ensure the Radix popper wrapper itself stacks above table handles */
+[data-radix-popper-content-wrapper] {
+  z-index: 9999 !important;
 }

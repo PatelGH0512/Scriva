@@ -9,6 +9,11 @@ import {
   Square,
   AlertCircle,
 } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import rehypeHighlight from "rehype-highlight";
+import "highlight.js/styles/atom-one-dark.css";
+import { SKILL_PROMPTS, parseSkillMessage } from "@/lib/skills";
 import { useChat } from "ai/react";
 import type { Message } from "ai";
 import { useWorkspaceStore } from "@/store/workspace";
@@ -31,6 +36,8 @@ export default function ChatPanel() {
     setPendingAppend,
     pendingChatPrompt,
     clearPendingChatPrompt,
+    pendingChatDraft,
+    clearPendingChatDraft,
   } = useWorkspaceStore();
   const activeSession = sessions.find((s) => s.id === activeSessionId);
   const sessionId = activeSessionId ?? "";
@@ -67,35 +74,36 @@ export default function ChatPanel() {
     },
   });
 
-  // Handle incoming prompts from notepad selection
+  // Handle block text drafted from notepad drag handle → prefill chat input
+  useEffect(() => {
+    if (!pendingChatDraft || pendingChatDraft.sessionId !== activeSessionId)
+      return;
+    setInput(pendingChatDraft.text);
+    clearPendingChatDraft();
+    setTimeout(() => textareaRef.current?.focus(), 50);
+  }, [pendingChatDraft, activeSessionId, setInput, clearPendingChatDraft]);
+
+  // Handle incoming skill prompts from notepad selection
   useEffect(() => {
     if (!pendingChatPrompt || pendingChatPrompt.sessionId !== activeSessionId)
       return;
 
-    const { selectedText, action } = pendingChatPrompt;
-    let prompt = selectedText;
+    const { selectedText, skill } = pendingChatPrompt;
+    const { userMessage, systemInjection } = SKILL_PROMPTS[skill](selectedText);
 
-    // Build action-specific prompts
-    switch (action) {
-      case "summarize":
-        prompt = `Summarize the following text concisely:\n\n"${selectedText}"`;
-        break;
-      case "expand":
-        prompt = `Expand on the following text with more detail and examples:\n\n"${selectedText}"`;
-        break;
-      case "rewrite":
-        prompt = `Rewrite the following text to be clearer and more polished:\n\n"${selectedText}"`;
-        break;
-      case "ask":
-      default:
-        prompt = `Regarding this text from my notes:\n\n"${selectedText}"\n\nWhat are your thoughts?`;
-        break;
-    }
-
-    // Auto-send the prompt
-    append({ role: "user", content: prompt });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    append(
+      { role: "user", content: userMessage },
+      { body: { model, systemInjection } },
+    );
     clearPendingChatPrompt();
-  }, [pendingChatPrompt, activeSessionId, append, clearPendingChatPrompt]);
+  }, [
+    pendingChatPrompt,
+    activeSessionId,
+    append,
+    clearPendingChatPrompt,
+    model,
+  ]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -241,22 +249,201 @@ export default function ChatPanel() {
             className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
           >
             {message.role === "user" ? (
-              <div
-                className="max-w-[80%] px-4 py-2.5 rounded-2xl rounded-tr-sm text-sm leading-relaxed"
-                style={{
-                  backgroundColor: "var(--secondary)",
-                  color: "var(--foreground)",
-                }}
-              >
-                {message.content}
-              </div>
+              parseSkillMessage(message.content) ? (
+                <SkillMessageBubble content={message.content} />
+              ) : (
+                <div
+                  className="max-w-[80%] px-4 py-2.5 rounded-2xl rounded-tr-sm text-sm leading-relaxed"
+                  style={{
+                    backgroundColor: "var(--secondary)",
+                    color: "var(--foreground)",
+                  }}
+                >
+                  {message.content}
+                </div>
+              )
             ) : (
               <div className="max-w-[92%] group/msg relative">
                 <div
-                  className="text-sm leading-7 whitespace-pre-wrap assistant-message-content"
+                  className="text-sm leading-7 assistant-message-content prose-scriva"
                   style={{ color: "var(--foreground)" }}
                 >
-                  {message.content}
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    rehypePlugins={[rehypeHighlight]}
+                    components={{
+                      p: ({ children }) => (
+                        <p className="mb-3 last:mb-0">{children}</p>
+                      ),
+                      strong: ({ children }) => (
+                        <strong
+                          className="font-semibold"
+                          style={{ color: "var(--foreground)" }}
+                        >
+                          {children}
+                        </strong>
+                      ),
+                      em: ({ children }) => (
+                        <em className="italic">{children}</em>
+                      ),
+                      ul: ({ children }) => (
+                        <ul className="mb-3 space-y-1 pl-4 list-disc">
+                          {children}
+                        </ul>
+                      ),
+                      ol: ({ children }) => (
+                        <ol className="mb-3 space-y-1 pl-4 list-decimal">
+                          {children}
+                        </ol>
+                      ),
+                      li: ({ children }) => (
+                        <li className="leading-relaxed">{children}</li>
+                      ),
+                      h1: ({ children }) => (
+                        <h1 className="text-base font-bold mb-2 mt-3">
+                          {children}
+                        </h1>
+                      ),
+                      h2: ({ children }) => (
+                        <h2 className="text-sm font-bold mb-2 mt-3">
+                          {children}
+                        </h2>
+                      ),
+                      h3: ({ children }) => (
+                        <h3 className="text-sm font-semibold mb-1 mt-2">
+                          {children}
+                        </h3>
+                      ),
+                      pre: ({ children }) => {
+                        const codeEl = children as React.ReactElement<{
+                          className?: string;
+                        }>;
+                        const cls = codeEl?.props?.className ?? "";
+                        const lang =
+                          cls
+                            .split(" ")
+                            .find((c) => c.startsWith("language-"))
+                            ?.replace("language-", "") ?? "";
+                        return (
+                          <div
+                            className="my-3 rounded-lg overflow-hidden border"
+                            style={{
+                              borderColor: "rgba(255,255,255,0.08)",
+                              backgroundColor: "#282c34",
+                            }}
+                          >
+                            {lang && (
+                              <div
+                                className="flex items-center px-4 py-1.5 border-b text-[11px] font-mono"
+                                style={{
+                                  borderColor: "rgba(255,255,255,0.08)",
+                                  color: "var(--muted-foreground)",
+                                  backgroundColor: "rgba(0,0,0,0.25)",
+                                }}
+                              >
+                                {lang}
+                              </div>
+                            )}
+                            <pre
+                              className="overflow-x-auto px-4 py-3 text-xs"
+                              style={{ margin: 0, background: "transparent" }}
+                            >
+                              {children}
+                            </pre>
+                          </div>
+                        );
+                      },
+                      code: ({ children, className }) => {
+                        if (className)
+                          return <code className={className}>{children}</code>;
+                        return (
+                          <code
+                            className="rounded px-1.5 py-0.5 text-xs font-mono"
+                            style={{
+                              backgroundColor: "rgba(255,255,255,0.08)",
+                              color: "var(--foreground)",
+                            }}
+                          >
+                            {children}
+                          </code>
+                        );
+                      },
+                      table: ({ children }) => (
+                        <div className="overflow-x-auto my-3">
+                          <table
+                            className="w-full text-xs border-collapse"
+                            style={{
+                              borderColor: "rgba(255,255,255,0.08)",
+                            }}
+                          >
+                            {children}
+                          </table>
+                        </div>
+                      ),
+                      thead: ({ children }) => (
+                        <thead
+                          style={{
+                            backgroundColor: "rgba(255,255,255,0.04)",
+                          }}
+                        >
+                          {children}
+                        </thead>
+                      ),
+                      tbody: ({ children }) => <tbody>{children}</tbody>,
+                      tr: ({ children }) => (
+                        <tr
+                          className="border-b"
+                          style={{ borderColor: "rgba(255,255,255,0.06)" }}
+                        >
+                          {children}
+                        </tr>
+                      ),
+                      th: ({ children }) => (
+                        <th
+                          className="px-3 py-2 text-left font-semibold border-r last:border-r-0"
+                          style={{
+                            borderColor: "rgba(255,255,255,0.06)",
+                            color: "var(--foreground)",
+                          }}
+                        >
+                          {children}
+                        </th>
+                      ),
+                      td: ({ children }) => (
+                        <td
+                          className="px-3 py-2 border-r last:border-r-0"
+                          style={{
+                            borderColor: "rgba(255,255,255,0.06)",
+                            color: "var(--foreground)",
+                          }}
+                        >
+                          {children}
+                        </td>
+                      ),
+                      blockquote: ({ children }) => (
+                        <blockquote
+                          className="border-l-2 pl-3 my-2 italic opacity-70"
+                          style={{ borderColor: "var(--color-scriva-accent)" }}
+                        >
+                          {children}
+                        </blockquote>
+                      ),
+                      hr: () => <hr className="my-3 opacity-10" />,
+                      a: ({ children, href }) => (
+                        <a
+                          href={href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="underline underline-offset-2"
+                          style={{ color: "var(--color-scriva-accent)" }}
+                        >
+                          {children}
+                        </a>
+                      ),
+                    }}
+                  >
+                    {message.content}
+                  </ReactMarkdown>
                 </div>
                 {message.content && (
                   <div className="flex justify-end items-center gap-2 mt-2 opacity-0 group-hover/msg:opacity-100 transition-opacity duration-150">
@@ -386,6 +573,52 @@ export default function ChatPanel() {
           style={{ color: "var(--muted-foreground)", opacity: 0.4 }}
         >
           Enter to send · Shift+Enter for newline
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function SkillMessageBubble({ content }: { content: string }) {
+  const parsed = parseSkillMessage(content);
+  if (!parsed) return null;
+
+  const { skillName, selectedText } = parsed;
+  const truncated =
+    selectedText.length > 90 ? selectedText.slice(0, 90) + "..." : selectedText;
+
+  return (
+    <div
+      className="max-w-[80%] rounded-xl border overflow-hidden"
+      style={{
+        borderColor: "rgba(13, 148, 136, 0.35)",
+        backgroundColor: "var(--secondary)",
+      }}
+    >
+      <div
+        className="flex items-center gap-1.5 px-3 py-2 border-b"
+        style={{
+          borderColor: "rgba(13, 148, 136, 0.2)",
+          backgroundColor: "rgba(13, 148, 136, 0.06)",
+        }}
+      >
+        <Paperclip
+          className="w-3 h-3 flex-shrink-0"
+          style={{ color: "var(--color-scriva-accent)" }}
+        />
+        <span
+          className="text-[11px] font-semibold tracking-wide"
+          style={{ color: "var(--color-scriva-accent)" }}
+        >
+          From Notepad · {skillName}
+        </span>
+      </div>
+      <div className="px-3 py-2.5">
+        <p
+          className="text-sm leading-relaxed italic"
+          style={{ color: "var(--foreground)", opacity: 0.75 }}
+        >
+          &ldquo;{truncated}&rdquo;
         </p>
       </div>
     </div>

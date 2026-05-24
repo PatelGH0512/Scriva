@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import type { SkillId } from "@/lib/skills";
 
 export type SyncStatus = "idle" | "syncing" | "synced" | "error";
 
@@ -23,11 +24,17 @@ export interface PendingAppend {
   contextLabel: string;
 }
 
+export interface PendingChatDraft {
+  id: string;
+  sessionId: string;
+  text: string;
+}
+
 export interface PendingChatPrompt {
   id: string;
   sessionId: string;
   selectedText: string;
-  action?: "ask" | "summarize" | "expand" | "rewrite";
+  skill: SkillId;
 }
 
 interface WorkspaceStore {
@@ -43,6 +50,7 @@ interface WorkspaceStore {
   chatMessages: Record<string, StoredMessage[]>;
   pendingAppend: PendingAppend | null;
   pendingChatPrompt: PendingChatPrompt | null;
+  pendingChatDraft: PendingChatDraft | null;
 
   // Actions
   setCloudMode: (enabled: boolean) => void;
@@ -58,8 +66,10 @@ interface WorkspaceStore {
   saveChatMessages: (sessionId: string, messages: StoredMessage[]) => void;
   setPendingAppend: (sessionId: string, content: string, contextLabel: string) => void;
   clearPendingAppend: () => void;
-  setPendingChatPrompt: (sessionId: string, selectedText: string, action?: PendingChatPrompt["action"]) => void;
+  setPendingChatPrompt: (sessionId: string, selectedText: string, skill: SkillId) => void;
   clearPendingChatPrompt: () => void;
+  setPendingChatDraft: (sessionId: string, text: string) => void;
+  clearPendingChatDraft: () => void;
   reset: () => void;
 }
 
@@ -74,6 +84,7 @@ const INITIAL_STATE = {
   chatMessages: {} as Record<string, StoredMessage[]>,
   pendingAppend: null as PendingAppend | null,
   pendingChatPrompt: null as PendingChatPrompt | null,
+  pendingChatDraft: null as PendingChatDraft | null,
 };
 
 function generateId(): string {
@@ -194,19 +205,33 @@ export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
     set({ pendingAppend: null });
   },
 
-  setPendingChatPrompt: (sessionId, selectedText, action = "ask") => {
+  setPendingChatPrompt: (sessionId, selectedText, skill) => {
     set({
       pendingChatPrompt: {
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 5)}`,
         sessionId,
         selectedText,
-        action,
+        skill,
       },
     });
   },
 
   clearPendingChatPrompt: () => {
     set({ pendingChatPrompt: null });
+  },
+
+  setPendingChatDraft: (sessionId, text) => {
+    set({
+      pendingChatDraft: {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 5)}`,
+        sessionId,
+        text,
+      },
+    });
+  },
+
+  clearPendingChatDraft: () => {
+    set({ pendingChatDraft: null });
   },
 
   reset: () => {
