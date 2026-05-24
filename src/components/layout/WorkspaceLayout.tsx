@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
-import { PanelLeft } from "lucide-react";
 import Sidebar from "./Sidebar";
 import ChatPanel from "./ChatPanel";
 import NotepadPanel from "./NotepadPanel";
@@ -103,27 +102,17 @@ export default function WorkspaceLayout() {
 
       {/* Content area */}
       <div ref={contentRef} className="flex flex-1 overflow-hidden relative">
-        {/* Expand sidebar button — shown when sidebar is collapsed */}
-        {!sidebarOpen && (
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="absolute top-3 left-3 z-10 p-1.5 rounded-md transition-colors duration-150 hover:bg-white/5"
-            title="Expand sidebar"
-          >
-            <PanelLeft
-              className="w-4 h-4"
-              style={{ color: "var(--muted-foreground)" }}
-            />
-          </button>
-        )}
-
         {/* Chat Panel */}
         <div
           ref={chatPanelRef}
           className="flex-shrink-0 overflow-hidden"
           style={{ width: "45%" }}
         >
-          <ChatPanel key={activeSessionId ?? "empty"} />
+          <ChatPanel
+            key={activeSessionId ?? "empty"}
+            sidebarOpen={sidebarOpen}
+            onExpandSidebar={() => setSidebarOpen(true)}
+          />
         </div>
 
         {/* Resize Handle */}

@@ -363,7 +363,7 @@ export default function Sidebar({ onCollapse }: SidebarProps) {
         </div>
 
         {/* Session List */}
-        <div className="flex-1 overflow-y-auto px-2 pb-2">
+        <div className="flex-1 overflow-y-auto px-2 pb-2 scriva-scroll">
           {groupOrder.map((group) => {
             const groupSessions = groupedSessions[group];
             if (!groupSessions?.length) return null;

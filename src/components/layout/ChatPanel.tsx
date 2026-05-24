@@ -4,6 +4,7 @@ import { useRef, useEffect, useState, useCallback } from "react";
 import {
   Send,
   ChevronDown,
+  ChevronRight,
   Paperclip,
   MessageSquare,
   Square,
@@ -27,7 +28,15 @@ const MODELS = [
 
 type ModelId = (typeof MODELS)[number]["id"];
 
-export default function ChatPanel() {
+interface ChatPanelProps {
+  sidebarOpen?: boolean;
+  onExpandSidebar?: () => void;
+}
+
+export default function ChatPanel({
+  sidebarOpen = true,
+  onExpandSidebar,
+}: ChatPanelProps) {
   const {
     activeSessionId,
     sessions,
@@ -163,11 +172,37 @@ export default function ChatPanel() {
         borderColor: "var(--border)",
       }}
     >
-      {/* Top bar — model selector */}
+      {/* Top bar — model selector (+ collapsed sidebar expand trigger) */}
       <div
         className="flex items-center justify-between px-4 h-14 flex-shrink-0 border-b"
         style={{ borderColor: "var(--border)" }}
       >
+        {/* Expand trigger — only when sidebar is hidden */}
+        {!sidebarOpen && (
+          <button
+            onClick={onExpandSidebar}
+            className="flex items-center gap-2 pr-3 py-1.5 rounded-lg transition-colors duration-150 hover:bg-[rgba(13,148,136,0.08)] group mr-1"
+            title="Expand sidebar"
+          >
+            <ChevronRight
+              className="w-3.5 h-3.5 transition-colors duration-150 group-hover:text-[var(--color-scriva-accent)]"
+              style={{ color: "var(--muted-foreground)" }}
+            />
+            <div
+              className="w-5 h-5 rounded flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0"
+              style={{ backgroundColor: "var(--color-scriva-accent)" }}
+            >
+              S
+            </div>
+            <span
+              className="font-semibold text-sm tracking-tight"
+              style={{ color: "var(--foreground)" }}
+            >
+              Scriva
+            </span>
+          </button>
+        )}
+
         <div ref={modelRef} className="relative">
           <button
             onClick={() => setModelOpen((o) => !o)}
@@ -214,7 +249,7 @@ export default function ChatPanel() {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-5 space-y-5">
+      <div className="flex-1 overflow-y-auto px-4 py-5 space-y-5 scriva-scroll">
         {isEmpty && (
           <div className="flex flex-col items-center justify-center h-full gap-3 pb-8">
             <div
