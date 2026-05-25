@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef } from "react";
 import { Download, Bold, Italic, Underline } from "lucide-react";
 import { useWorkspaceStore } from "@/store/workspace";
+import { ExportDialog } from "@/components/export/ExportDialog";
 import dynamic from "next/dynamic";
 import type { BlockNoteEditor } from "@blocknote/core";
 
@@ -15,7 +16,11 @@ const NotepadEditor = dynamic(
 );
 
 export default function NotepadPanel() {
-  const { activeSessionId } = useWorkspaceStore();
+  const { activeSessionId, sessions, documents } = useWorkspaceStore();
+  const [exportOpen, setExportOpen] = useState(false);
+
+  const activeSession = sessions.find((s) => s.id === activeSessionId);
+  const hasContent = (documents[activeSessionId ?? ""] ?? []).length > 0;
   const [editor, setEditor] = useState<BlockNoteEditor<any, any, any> | null>(
     null,
   );
@@ -115,8 +120,10 @@ export default function NotepadPanel() {
         </div>
 
         <button
-          className="p-1.5 rounded-md transition-colors duration-150 hover:bg-white/5"
-          title="Export document"
+          onClick={() => setExportOpen(true)}
+          disabled={!hasContent}
+          className="p-1.5 rounded-md transition-colors duration-150 hover:bg-white/5 disabled:opacity-40"
+          title={hasContent ? "Export document" : "Nothing to export yet"}
         >
           <Download
             className="w-4 h-4"
@@ -124,6 +131,12 @@ export default function NotepadPanel() {
           />
         </button>
       </div>
+
+      <ExportDialog
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        sessionTitle={activeSession?.title ?? "Untitled"}
+      />
 
       {/* BlockNote Editor */}
       <div

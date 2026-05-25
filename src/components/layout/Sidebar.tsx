@@ -22,7 +22,7 @@ import {
   type Session,
   type SyncStatus,
 } from "@/store/workspace";
-import DeleteSessionDialog from "./DeleteSessionDialog";
+import { DeleteWithExportDialog } from "@/components/export/DeleteWithExportDialog";
 import { useCloudSync } from "@/hooks/useCloudSync";
 import { useThemeStore } from "@/store/theme";
 
@@ -303,10 +303,6 @@ export default function Sidebar({ onCollapse }: SidebarProps) {
     }
   };
 
-  const handleExportAndDelete = (_format: "pdf" | "docx") => {
-    handleDeleteConfirm();
-  };
-
   return (
     <>
       <div
@@ -438,15 +434,13 @@ export default function Sidebar({ onCollapse }: SidebarProps) {
         </div>
       </div>
 
-      {deleteTarget && (
-        <DeleteSessionDialog
-          sessionTitle={deleteTarget.title}
-          hasNotes={deleteTarget.hasNotes}
-          onExportAndDelete={handleExportAndDelete}
-          onDeleteAnyway={handleDeleteConfirm}
-          onCancel={() => setDeleteTarget(null)}
-        />
-      )}
+      <DeleteWithExportDialog
+        open={!!deleteTarget}
+        sessionTitle={deleteTarget?.title ?? ""}
+        hasNotes={deleteTarget?.hasNotes ?? false}
+        onDelete={handleDeleteConfirm}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </>
   );
 }
