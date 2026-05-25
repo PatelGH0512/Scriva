@@ -13,6 +13,35 @@ Scriva is a three-panel productivity app that fuses an AI chat assistant with a 
 
 ---
 
+## Screenshots
+
+### Workspace Overview
+
+![Workspace Overview](./screenshots/workspace-overview.png)
+_Three-panel layout — Sidebar · Chat · Notepad_
+
+### AI Chat + Append to Notepad
+
+![Append to Notepad](./screenshots/append-to-notepad.png)
+_Append any AI response (including code blocks and tables) directly to the notepad_
+
+### Scriva Skills
+
+![Scriva Skills](./screenshots/scriva-skills.png)
+_Select text in the notepad, pick a thinking skill, and get a context-enriched AI response_
+
+### Rich BlockNote Editor
+
+![Notepad Editor](./screenshots/notepad-editor.png)
+_Full block editor — headings, lists, code, tables, checklists, drag-and-drop reordering_
+
+### Export Options
+
+![Export](./screenshots/export.png)
+_Export the current document as PDF, DOCX, or Markdown_
+
+---
+
 ## Features
 
 ### Three-Panel Workspace

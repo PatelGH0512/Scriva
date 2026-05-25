@@ -4,10 +4,20 @@
  * Bold (**text**) and italic (*text*) are converted to inline styles.
  */
 
+export interface TableRow {
+  cells: InlineContent[][];
+}
+
+export interface ParsedTableData {
+  rows: TableRow[];
+  headerRows?: number;
+}
+
 export interface ParsedBlock {
-  type: "heading" | "bulletListItem" | "numberedListItem" | "paragraph" | "annotated";
+  type: "heading" | "bulletListItem" | "numberedListItem" | "paragraph" | "annotated" | "codeBlock" | "table";
   props?: Record<string, unknown>;
   content: string | InlineContent[];
+  tableData?: ParsedTableData;
 }
 
 export interface InlineContent {
@@ -55,6 +65,23 @@ function parseInlineContent(text: string): InlineContent[] {
   }
   
   return result;
+}
+
+/**
+ * Check if a line is a markdown table separator row (|---|---|)
+ */
+function isSeparatorRow(line: string): boolean {
+  const cells = line.trim().replace(/^\|?|\|?$/g, "").split("|");
+  return cells.length > 0 && cells.every((cell) => /^\s*:?-+:?\s*$/.test(cell));
+}
+
+/**
+ * Parse a markdown table row into an array of InlineContent arrays (one per cell)
+ */
+function parseTableRow(line: string): InlineContent[][] {
+  const trimmed = line.trim().replace(/^\|?|\|?$/g, "");
+  const cells = trimmed.split("|");
+  return cells.map((cell) => parseInlineContent(cell.trim()) || [{ type: "text", text: cell.trim() }]);
 }
 
 /**
@@ -124,6 +151,10 @@ export function parseMarkdownToBlocks(markdown: string): ParsedBlock[] {
   const lines = markdown.split("\n");
   const blocks: ParsedBlock[] = [];
   let currentParagraph: string[] = [];
+  let inCodeBlock = false;
+  let codeLanguage = "";
+  let codeLines: string[] = [];
+  let tableLines: string[] = [];
   
   const flushParagraph = () => {
     if (currentParagraph.length > 0) {
@@ -137,9 +168,73 @@ export function parseMarkdownToBlocks(markdown: string): ParsedBlock[] {
       currentParagraph = [];
     }
   };
+
+  const flushCodeBlock = () => {
+    const code = codeLines.join("\n");
+    blocks.push({
+      type: "codeBlock",
+      props: { language: codeLanguage || "text" },
+      content: [{ type: "text", text: code }],
+    });
+    codeLines = [];
+    codeLanguage = "";
+  };
+
+  const flushTableBlock = () => {
+    if (tableLines.length === 0) return;
+    const sepIndex = tableLines.findIndex((l) => isSeparatorRow(l));
+    let allDataLines: string[];
+    let headerRows: number | undefined;
+    if (sepIndex > 0) {
+      const headerLines = tableLines.slice(0, sepIndex);
+      const bodyLines = tableLines.slice(sepIndex + 1);
+      allDataLines = [...headerLines, ...bodyLines];
+      headerRows = headerLines.length;
+    } else {
+      allDataLines = tableLines;
+    }
+    blocks.push({
+      type: "table",
+      content: [],
+      tableData: {
+        rows: allDataLines.map((l) => ({ cells: parseTableRow(l) })),
+        headerRows,
+      },
+    });
+    tableLines = [];
+  };
   
   for (const line of lines) {
     const trimmed = line.trim();
+
+    // Detect markdown table rows (lines starting with |)
+    const isTableRow = trimmed.startsWith("|") || (tableLines.length > 0 && /^\|/.test(trimmed));
+    if (isTableRow && !inCodeBlock) {
+      flushParagraph();
+      tableLines.push(line);
+      continue;
+    } else if (tableLines.length > 0 && !isTableRow) {
+      flushTableBlock();
+    }
+
+    // Detect fenced code block start/end (``` or ~~~)
+    if (/^(`{3,}|~{3,})/.test(trimmed)) {
+      if (!inCodeBlock) {
+        flushParagraph();
+        inCodeBlock = true;
+        // Extract language tag after the backticks
+        codeLanguage = trimmed.replace(/^(`{3,}|~{3,})/, "").trim();
+      } else {
+        inCodeBlock = false;
+        flushCodeBlock();
+      }
+      continue;
+    }
+
+    if (inCodeBlock) {
+      codeLines.push(line);
+      continue;
+    }
     
     // Empty line: flush current paragraph
     if (!trimmed) {
@@ -160,6 +255,16 @@ export function parseMarkdownToBlocks(markdown: string): ParsedBlock[] {
       // Accumulate paragraph lines
       currentParagraph.push(trimmed);
     }
+  }
+
+  // Handle unclosed code block
+  if (inCodeBlock && codeLines.length > 0) {
+    flushCodeBlock();
+  }
+
+  // Handle trailing table
+  if (tableLines.length > 0) {
+    flushTableBlock();
   }
   
   // Flush any remaining paragraph
@@ -260,11 +365,24 @@ export function smartParseForAppend(
   
   // Then add all parsed blocks as native types
   for (const block of parsed) {
-    blocks.push({
-      type: block.type,
-      props: block.props ?? {},
-      content: block.content,
-    });
+    if (block.type === "table" && block.tableData) {
+      blocks.push({
+        type: "table",
+        content: {
+          type: "tableContent",
+          rows: block.tableData.rows.map((row) => ({ cells: row.cells })),
+          ...(block.tableData.headerRows !== undefined
+            ? { headerRows: block.tableData.headerRows }
+            : {}),
+        },
+      });
+    } else {
+      blocks.push({
+        type: block.type,
+        props: block.props ?? {},
+        content: block.content,
+      });
+    }
   }
   
   return blocks;
