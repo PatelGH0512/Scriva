@@ -23,6 +23,7 @@ import {
   type SyncStatus,
 } from "@/store/workspace";
 import { DeleteWithExportDialog } from "@/components/export/DeleteWithExportDialog";
+import { ScrivaWordmark } from "@/components/ui/ScrivaWordmark";
 import { useCloudSync } from "@/hooks/useCloudSync";
 import { useThemeStore } from "@/store/theme";
 
@@ -317,20 +318,7 @@ export default function Sidebar({ onCollapse }: SidebarProps) {
           className="flex items-center justify-between px-4 h-14 flex-shrink-0 border-b"
           style={{ borderColor: "var(--border)" }}
         >
-          <div className="flex items-center gap-2">
-            <div
-              className="w-6 h-6 rounded flex items-center justify-center text-white text-xs font-bold"
-              style={{ backgroundColor: "var(--color-scriva-accent)" }}
-            >
-              S
-            </div>
-            <span
-              className="font-semibold text-sm tracking-tight"
-              style={{ color: "var(--foreground)" }}
-            >
-              Scriva
-            </span>
-          </div>
+          <ScrivaWordmark size="md" />
           <button
             onClick={onCollapse}
             className="p-1.5 rounded-md transition-colors duration-150 hover:bg-white/5"

@@ -11,6 +11,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import { ScrivaWordmark } from "@/components/ui/ScrivaWordmark";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import "highlight.js/styles/atom-one-dark.css";
@@ -188,18 +189,7 @@ export default function ChatPanel({
               className="w-3.5 h-3.5 transition-colors duration-150 group-hover:text-[var(--color-scriva-accent)]"
               style={{ color: "var(--muted-foreground)" }}
             />
-            <div
-              className="w-5 h-5 rounded flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0"
-              style={{ backgroundColor: "var(--color-scriva-accent)" }}
-            >
-              S
-            </div>
-            <span
-              className="font-semibold text-sm tracking-tight"
-              style={{ color: "var(--foreground)" }}
-            >
-              Scriva
-            </span>
+            <ScrivaWordmark size="md" />
           </button>
         )}
 

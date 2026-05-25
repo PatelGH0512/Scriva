@@ -1,29 +1,42 @@
 import { SignUp } from "@clerk/nextjs";
+import { ScrivaWordmark } from "@/components/ui/ScrivaWordmark";
 
 export default function SignUpPage() {
   return (
     <div
-      className="min-h-screen flex items-center justify-center"
-      style={{ backgroundColor: "var(--color-scriva-bg)" }}
+      className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden"
+      style={{ backgroundColor: "#0e1117" }}
     >
-      <div className="text-center">
-        <h1
-          className="text-2xl font-semibold mb-2"
-          style={{ color: "var(--foreground)" }}
-        >
-          Create your Scriva account
-        </h1>
+      {/* Ambient glow */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(ellipse 60% 40% at 50% 45%, rgba(13,148,136,0.07) 0%, transparent 70%)",
+        }}
+      />
+
+      {/* Hero wordmark */}
+      <div className="relative z-10 flex flex-col items-center mb-10">
+        <ScrivaWordmark size="xl" />
         <p
-          className="text-sm mb-8"
-          style={{ color: "var(--muted-foreground)" }}
+          className="mt-3 text-sm tracking-wide"
+          style={{ color: "#4b5563", letterSpacing: "0.08em" }}
         >
-          Your thinking workspace awaits
+          YOUR THINKING WORKSPACE AWAITS
         </p>
+      </div>
+
+      {/* Auth widget */}
+      <div className="relative z-10">
         <SignUp
           appearance={{
             elements: {
               rootBox: "mx-auto",
-              card: "bg-[#131820] border border-[#1e293b]",
+              card: "bg-[#0d1117] border border-[rgba(255,255,255,0.06)] shadow-2xl",
+              headerTitle: "hidden",
+              headerSubtitle: "hidden",
+              badge: "hidden",
             },
           }}
         />

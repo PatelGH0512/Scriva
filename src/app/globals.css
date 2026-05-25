@@ -262,3 +262,9 @@
 [data-radix-popper-content-wrapper] {
   z-index: 9999 !important;
 }
+
+/* Hide Clerk "Development mode" badge on auth pages */
+.cl-badge,
+.cl-internal-badge {
+  display: none !important;
+}
