@@ -40,6 +40,16 @@ _Full block editor — headings, lists, code, tables, checklists, drag-and-drop 
 ![Export](./screenshots/export.png)
 _Export the current document as PDF, DOCX, or Markdown_
 
+### Login
+
+![Export](./screenshots/login.png)
+\_LoginPage supported ny clerk
+
+### SignUp
+
+![Export](./screenshots/signup.png)
+\_Sign up page
+
 ---
 
 ## Features
